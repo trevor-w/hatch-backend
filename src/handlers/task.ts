@@ -10,7 +10,7 @@ const defaultDoneListLimit = 10
 export const listTasks = async (req: Request, res: Response, db: Db) => {
     try {
         const toDoTask = await db.collection(Collections.TASK).find({ status: TaskStatus.TODO }).toArray();
-        const doneList = await db.collection(Collections.TASK).find({ status: TaskStatus.DONE }).sort({ "createdAt": -1 }).limit(defaultDoneListLimit).toArray();
+        const doneList = await db.collection(Collections.TASK).find({ status: TaskStatus.DONE }).sort({ "doneAt": -1 }).limit(defaultDoneListLimit).toArray();
         const result = [...toDoTask, ...doneList].map(task => {
             return { ...task, id: task._id };
         });
@@ -38,8 +38,9 @@ export const updateTaskStatus = async (req: Request, res: Response, db: Db) => {
     const taskID = req.params.id;
     const { status } = req.body;
     try {
-        const result = await db.collection(Collections.TASK).updateOne({ _id: ObjectId.createFromHexString(taskID) }, { $set: { status: status } });
-        res.status(HttpStatus.OK).json({ timestamp: new Date().getTime() });
+        const timeNow = new Date().getTime();
+        const result = await db.collection(Collections.TASK).updateOne({ _id: ObjectId.createFromHexString(taskID) }, { $set: { status: status, doneAt: status == TaskStatus.DONE ? timeNow : 0 } });
+        res.status(HttpStatus.OK).json({ timestamp: timeNow });
     }
     catch (err) {
         res.status(HttpStatus.InternalServerError).json({ code: HttpStatus.InternalServerError, message: err });
